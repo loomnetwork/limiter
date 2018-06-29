@@ -33,7 +33,7 @@ In five steps:
 ```go
 // Create a rate with the given limit (number of requests) for the given
 // period (a time.Duration of your choice).
-import "github.com/ulule/limiter"
+import "github.com/loomnetwork/limiter"
 
 rate := limiter.Rate{
     Period: 1 * time.Hour,
