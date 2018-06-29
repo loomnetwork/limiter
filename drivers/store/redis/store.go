@@ -103,6 +103,48 @@ func (store *Store) Get(ctx context.Context, key string, rate limiter.Rate) (lim
 	return lctx, nil
 }
 
+// Get returns the limit for given identifier.
+func (store *Store) Reset(ctx context.Context, key string, rate limiter.Rate) (limiter.Context, error) {
+	key = fmt.Sprintf("%s:%s", store.Prefix, key)
+	now := time.Now()
+
+	lctx := limiter.Context{}
+	onWatch := func(rtx *libredis.Tx) error {
+
+		created, err := store.doSetValue(rtx, key, rate.Period)
+		if err != nil {
+			return err
+		}
+
+		if created {
+			expiration := now.Add(rate.Period)
+			lctx = common.GetContextFromState(now, rate, expiration, 1)
+			return nil
+		}
+
+		count, ttl, err := store.doUpdateValue(rtx, key, rate.Period)
+		if err != nil {
+			return err
+		}
+
+		expiration := now.Add(rate.Period)
+		if ttl > 0 {
+			expiration = now.Add(ttl)
+		}
+
+		lctx = common.GetContextFromState(now, rate, expiration, count)
+		return nil
+	}
+
+	err := store.client.Watch(onWatch, key)
+	if err != nil {
+		err = errors.Wrapf(err, "limiter: cannot get value for %s", key)
+		return limiter.Context{}, err
+	}
+
+	return lctx, nil
+}
+
 // Peek returns the limit for given identifier, without modification on current values.
 func (store *Store) Peek(ctx context.Context, key string, rate limiter.Rate) (limiter.Context, error) {
 	key = fmt.Sprintf("%s:%s", store.Prefix, key)
@@ -208,9 +250,68 @@ func (store *Store) doUpdateValue(rtx *libredis.Tx, key string,
 	return 0, 0, errors.New("retry limit exceeded")
 }
 
+
+
 // updateValue will try to increment the counter identified by given key.
 func updateValue(rtx *libredis.Tx, key string, expiration time.Duration) (int64, time.Duration, error) {
 	pipe := rtx.Pipeline()
+	value := pipe.Incr(key)
+	expire := pipe.PTTL(key)
+
+	_, err := pipe.Exec()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	count, err := value.Result()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	ttl, err := expire.Result()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// If ttl is negative, we have to define key expiration.
+	if ttl < 0 {
+		expire := rtx.Expire(key, expiration)
+
+		ok, err := expire.Result()
+		if err != nil {
+			return count, ttl, err
+		}
+
+		if !ok {
+			return count, ttl, errors.New("cannot configure timeout on key")
+		}
+	}
+
+	return count, ttl, nil
+
+}
+
+// doResetValue will execute resetValue with a retry mecanism (optimistic locking) until store.MaxRetry is reached.
+func (store *Store) doResetValue(rtx *libredis.Tx, key string,
+	expiration time.Duration) (int64, time.Duration, error) {
+	for i := 0; i < store.MaxRetry; i++ {
+		count, ttl, err := resetValue(rtx, key, expiration)
+		if err == nil {
+			return count, ttl, nil
+		}
+
+		// If ttl is negative and there is an error, do not retry an update.
+		if ttl < 0 {
+			return 0, 0, err
+		}
+	}
+	return 0, 0, errors.New("retry limit exceeded")
+}
+
+// resetValue will try to reset the counter identified by given key.
+func resetValue(rtx *libredis.Tx, key string, expiration time.Duration) (int64, time.Duration, error) {
+	pipe := rtx.Pipeline()
+	_ := pipe.Set(key, 0, expiration)
 	value := pipe.Incr(key)
 	expire := pipe.PTTL(key)
 
