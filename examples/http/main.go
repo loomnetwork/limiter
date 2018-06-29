@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	redis "github.com/go-redis/redis"
-	"github.com/ulule/limiter"
-	"github.com/ulule/limiter/drivers/middleware/stdlib"
-	sredis "github.com/ulule/limiter/drivers/store/redis"
+	"github.com/loomnetwork/limiter"
+	"github.com/loomnetwork/limiter/drivers/middleware/stdlib"
+	sredis "github.com/loomnetwork/limiter/drivers/store/redis"
 )
 
 func main() {

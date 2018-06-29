@@ -39,6 +39,11 @@ func (limiter *Limiter) Get(ctx context.Context, key string) (Context, error) {
 	return limiter.Store.Get(ctx, key, limiter.Rate)
 }
 
+// Get returns the limit for given identifier.
+func (limiter *Limiter) Reset(ctx context.Context, key string) (Context, error) {
+	return limiter.Store.Get(ctx, key, limiter.Rate)
+}
+
 // Peek returns the limit for given identifier, without modification on current values.
 func (limiter *Limiter) Peek(ctx context.Context, key string) (Context, error) {
 	return limiter.Store.Peek(ctx, key, limiter.Rate)

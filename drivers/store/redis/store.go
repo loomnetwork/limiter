@@ -8,8 +8,8 @@ import (
 	libredis "github.com/go-redis/redis"
 	"github.com/pkg/errors"
 
-	"github.com/ulule/limiter"
-	"github.com/ulule/limiter/drivers/store/common"
+	"github.com/loomnetwork/limiter"
+	"github.com/loomnetwork/limiter/drivers/store/common"
 )
 
 // Client is an interface thats allows to use a redis cluster or a redis single client seamlessly.

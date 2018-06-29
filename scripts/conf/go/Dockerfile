@@ -22,8 +22,8 @@ RUN apt-get -y update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /go/src/github.com/ulule/limiter
-WORKDIR /go/src/github.com/ulule/limiter
+COPY . /go/src/github.com/loomnetwork/limiter
+WORKDIR /go/src/github.com/loomnetwork/limiter
 RUN dep ensure
 
 CMD /bin/bash
