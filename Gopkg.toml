@@ -1,4 +1,4 @@
-# Gopkg.toml for github.com/ulule/limiter
+# Gopkg.toml for github.com/loomnetwork/limiter
 
 ignored = [
   "github.com/stretchr/testify",

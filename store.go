@@ -9,6 +9,8 @@ import (
 type Store interface {
 	// Get returns the limit for given identifier.
 	Get(ctx context.Context, key string, rate Rate) (Context, error)
+	// Get returns the limit for given identifier.
+	Reset(ctx context.Context, key string, rate Rate) (Context, error)
 	// Peek returns the limit for given identifier, without modification on current values.
 	Peek(ctx context.Context, key string, rate Rate) (Context, error)
 }

@@ -117,6 +117,20 @@ func (cache *Cache) Increment(key string, value int64, duration time.Duration) (
 	return value, time.Unix(0, expiration)
 }
 
+
+func (cache *Cache) Reset(key string, value int64, duration time.Duration) (int64, time.Time) {
+	cache.mutex.Lock()
+	expiration := time.Now().Add(duration).UnixNano()
+	counter := Counter{
+		Value:      value,
+		Expiration: expiration,
+	}
+	cache.counters[key] = counter
+	cache.mutex.Unlock()
+
+	return value, time.Unix(0, expiration)
+}
+
 // Get returns key's value and expiration.
 func (cache *Cache) Get(key string, duration time.Duration) (int64, time.Time) {
 	cache.mutex.RLock()

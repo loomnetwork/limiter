@@ -9,7 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ulule/limiter"
+	"github.com/loomnetwork/limiter"
+	"math/rand"
 )
 
 // TestStoreSequentialAccess verify that store works as expected with a sequential access.
@@ -83,4 +84,60 @@ func TestStoreConcurrentAccess(t *testing.T, store limiter.Store) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+func getNewLimiter(limit int64, period time.Duration, store limiter.Store) *limiter.Limiter {
+	return limiter.New(store, limiter.Rate{
+		Limit:  limit,
+		Period: period * time.Second,
+	})
+
+}
+
+// Test Limiter reset functionality
+func TestLimiter_Reset(t *testing.T, store limiter.Store) {
+	is := require.New(t)
+
+
+	scenarios := []struct {
+		lim *limiter.Limiter
+		ctx context.Context
+		key string
+		newRate int64
+		expected int64
+	}{
+		{
+			lim: getNewLimiter(100, 20, store),
+			key: "1",
+			newRate: int64(120),
+			expected: 120,
+		},
+		{
+			lim: getNewLimiter(3, 1000, store),
+			key: "2",
+			newRate: int64(761),
+			expected: 761,
+		},
+		{
+			lim: getNewLimiter(213, 120, store),
+			key: "3",
+			newRate: int64(1),
+			expected: 1,
+		},
+		{
+			lim: getNewLimiter(10, 4, store),
+			key: "4",
+			newRate: int64(2101),
+			expected: 2101,
+		},
+	}
+
+	for _, v := range scenarios {
+		var lctx limiter.Context
+		for i := 0; i < 1 + rand.Intn(int(v.lim.Rate.Limit)); i++ {
+			lctx, _ = v.lim.Get(v.ctx, v.key)
+		}
+		lctx, _ = v.lim.Reset(v.ctx, v.key, v.newRate)
+		is.True(v.newRate == lctx.Remaining)
+	}
 }
