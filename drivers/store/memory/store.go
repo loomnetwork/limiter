@@ -49,7 +49,7 @@ func (store *Store) Reset(ctx context.Context, key string, rate limiter.Rate) (l
 	key = fmt.Sprintf("%s:%s", store.Prefix, key)
 	now := time.Now()
 
-	count, expiration := store.cache.Reset(key, 1, rate.Period)
+	count, expiration := store.cache.Reset(key, 0, rate.Period)
 
 	lctx := common.GetContextFromState(now, rate, expiration, count)
 	return lctx, nil

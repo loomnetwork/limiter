@@ -40,8 +40,9 @@ func (limiter *Limiter) Get(ctx context.Context, key string) (Context, error) {
 }
 
 // Get returns the limit for given identifier.
-func (limiter *Limiter) Reset(ctx context.Context, key string) (Context, error) {
-	return limiter.Store.Get(ctx, key, limiter.Rate)
+func (limiter *Limiter) Reset(ctx context.Context, key string, newRateLimit int64) (Context, error) {
+	limiter.Rate.Limit = newRateLimit
+	return limiter.Store.Reset(ctx, key, limiter.Rate)
 }
 
 // Peek returns the limit for given identifier, without modification on current values.
