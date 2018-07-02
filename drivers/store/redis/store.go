@@ -118,7 +118,7 @@ func (store *Store) Reset(ctx context.Context, key string, rate limiter.Rate) (l
 
 		if created {
 			expiration := now.Add(rate.Period)
-			lctx = common.GetContextFromState(now, rate, expiration, 1)
+			lctx = common.GetContextFromState(now, rate, expiration, 0)
 			return nil
 		}
 
