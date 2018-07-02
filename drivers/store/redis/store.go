@@ -122,7 +122,7 @@ func (store *Store) Reset(ctx context.Context, key string, rate limiter.Rate) (l
 			return nil
 		}
 
-		count, ttl, err := store.doUpdateValue(rtx, key, rate.Period)
+		_, ttl, err := store.doResetValue(rtx, key, rate.Period)
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func (store *Store) Reset(ctx context.Context, key string, rate limiter.Rate) (l
 			expiration = now.Add(ttl)
 		}
 
-		lctx = common.GetContextFromState(now, rate, expiration, count)
+		lctx = common.GetContextFromState(now, rate, expiration, 0)
 		return nil
 	}
 
@@ -311,7 +311,7 @@ func (store *Store) doResetValue(rtx *libredis.Tx, key string,
 // resetValue will try to reset the counter identified by given key.
 func resetValue(rtx *libredis.Tx, key string, expiration time.Duration) (int64, time.Duration, error) {
 	pipe := rtx.Pipeline()
-	_ := pipe.Set(key, 0, expiration)
+	pipe.Set(key, 0, expiration)
 	value := pipe.Incr(key)
 	expire := pipe.PTTL(key)
 
